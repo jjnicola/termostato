@@ -37,22 +37,6 @@ void lcd_send( char mode, const char dato )
     LCD_ENABLE = 0;
     delay_ms(1);
 }
-void lcd_sendentero( char mode, long int datoentero )
-{
-    int dat = datoentero;
-    LCD_RS = mode;
-    dat = datoentero & 0xf0;
-    PORTD = dat | (PORTD & 0x0f) ;
-    LCD_ENABLE = 1;
-    delay_ms(1);
-    LCD_ENABLE = 0;
-    dat = ((datoentero<<4)& 0xf0);
-    PORTD = dat | (PORTD & 0x0f) ;
-    LCD_ENABLE = 1;
-    delay_ms(1);
-    LCD_ENABLE = 0;
-    delay_ms(1);
-}
 
 void lcd_init (void)
 {
@@ -87,14 +71,3 @@ void lcd_message (const char * mess )
     mess++ ;
   }
 }
-
-char lcd_hexa(char a)
-{
-    
-    if (a >9)
-         a+=55;
-    else
-        a+=48;
-    return a;
-}
-

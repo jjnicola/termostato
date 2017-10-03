@@ -6,7 +6,7 @@
  */
 #define _XTAL_FREQ 16000000
 
-#pragma config FOSC = HS// Oscillator Selection bits (HS oscillator)
+#pragma config FOSC = HS        // Oscillator Selection bits (HS oscillator)
 #pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
 #pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
 #pragma config BOREN = ON       // Brown-out Reset Enable bit (BOR enabled)
@@ -49,75 +49,15 @@ void show_lines(const char *linea1, const char *linea2)
   delay_ms (500);
 }
 
-//void loguear (char *buffer_temp)
-//{
-//  int contaloop = 0;
-//
-//  for (contaloop = 0; contaloop < 6 ; contaloop++)
-//    putch(buffer_temp[contaloop]);
-//  putch('\n');
-//  putch('\r');
-//}
-
-//void cmdchk()
-//{
-//  int rcmd;
-//  unsigned int rval;
-//  RCIE = 0;
-//  rcmd = cmdcount +48;
-//  show_lines (buffercmd, (char*)&rcmd);
-//  rcmd = check_cmd(buffercmd);
-//  if (rcmd >= 0)
-//    {
-//      show_lines ("ADENTRO","...\0");
-//      new_cmd = 0;
-//      rval = c2i (buffercmd);
-//      if (rcmd == TMP )
-//        {
-//          custom_temp = rval;
-//          estilo_actual = CUSTOM;
-//          show_lines ("Configura\0", buffercmd);
-//        }
-//      if (rcmd == STY)
-//        {
-//          estilo_actual = rval;
-//          show_lines ("New Style\0", estilo[estilo_actual]);
-//        }
-//      if (rcmd == RST)
-//        {
-//          MAX = 0;
-//          MIN = 0;
-//          show_lines ("Reseteando\0", "...\0");
-//        }
-//      cmdcount = 0;
-//    }
-//  RCIE = 1;
-//}
-
 void interrupt ISR()
 {
-//  if (RCIF == 1 )
-//    {
-//      int aux;
-//      buffercmd[cmdcount] = getch();
-//      cmdcount++;
-//      aux = cmdcount + 48;
-//      show_lines (buffercmd, (char*)&aux);
-//      if (cmdcount > 6)
-//        {
-//          show_lines ("RST COUNT\0", "...\0");
-//          cmdcount = 0;
-//          new_cmd = 1;
-//        }
-//    }
-
+  /* Debounce done by hardware*/
   if (INTF == 1)
     {
       if (estilo_actual < 6)
         estilo_actual++;
       else
         estilo_actual = 0;
-      //delay_ms (150);
       INTF = 0;
     }
 }
@@ -125,7 +65,7 @@ void interrupt ISR()
 int main(int argc, char** argv)
 {
   TRISA = 0x0d; // AD input
-  TRISB = 0x07;  //tres primeros pines de B como input
+  TRISB = 0x07;  //three first pins as input in Port B
   TRISC = 0x00; //Puerto C como salida
   char buffer_temp[] = "00000\0";
   float temp_read = 0;
@@ -141,9 +81,6 @@ int main(int argc, char** argv)
   custom_temp = temp[estilo_actual];
 
   /* Inicializo el puerto serie. */
-//  init_comms();
-  delay_ms(100);
-//  RCIE = OFF; // Habilito interrupcion para el RX.
   PEIE = ON; // Habilito interrupcion para perisfericos.
   INTF = OFF; //flag de interrupcion en B0
   INTE = ON; // Habilito la interrupcion en el pin B0
@@ -183,13 +120,6 @@ int main(int argc, char** argv)
         if (temp_read < (custom_temp - hist))
           RC5 = APAGADA;
       }
-      
-        
-      //loguear(buffer_temp);
-
-      /* Chequeo si llego un nuevo comando */
-//      if (new_cmd == 1)
-//        cmdchk();
     } /* End loop infinito */
 
   return (EXIT_SUCCESS);

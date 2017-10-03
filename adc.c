@@ -45,14 +45,3 @@ unsigned int adc_read(unsigned char canal)
    valor = (ADRESH << 8) | ADRESL;       // leer valor
    return valor;
 }
-
-
-void adc_startread(unsigned char canal)
-{
-   ADCON0 &= 0xC7;                     // borrar anteriores selecciones
-
-   ADCON0 |= (canal & 0x07) << 3;      // establecer canal seleccionado
-   delay_ms(10);
-   GO = 1;               // iniciar conversión
-}
-
