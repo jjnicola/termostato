@@ -28,11 +28,11 @@
 
 #define ON        1
 #define OFF       0
-#define APAGADA   1
-#define ENCENDIDA 0
+#define FRIDGE_OFF   1
+#define FRIDGE_ON 0
 
 int MAX, MIN;
-int estilo_actual;
+int style_set;
 int custom_temp;
 bit new_cmd = 0;
 unsigned char buffercmd[8] = "CMD:VAL\0";
@@ -54,22 +54,22 @@ void interrupt ISR()
   /* Debounce done by hardware*/
   if (INTF == 1)
     {
-      if (estilo_actual < 6)
-        estilo_actual++;
+      if (style_set < 6)
+        style_set++;
       else
-        estilo_actual = 0;
+        style_set = 0;
       INTF = 0;
     }
 }
 
 int main(int argc, char** argv)
 {
-  TRISA = 0x0d; // AD input
-  TRISB = 0x07;  //three first pins as input in Port B
-  TRISC = 0x00; //Puerto C como salida
+  TRISA = 0x0d;  // AD input.
+  TRISB = 0x07;  //three first pins as input in Port B.
+  TRISC = 0x00;  //Set port C as output port.
   char buffer_temp[] = "00000\0";
   float temp_read = 0;
-  int contaloop = 0;
+  int counterloop = 0;
   unsigned char a;
 
   const char *linea1 = "  Ammann";
@@ -77,34 +77,34 @@ int main(int argc, char** argv)
   lcd_init();
   show_lines(linea1, linea2);
   delay_ms(3000);
-  estilo_actual = ENGLISH;
-  custom_temp = temp[estilo_actual];
+  style_set = ENGLISH;
+  custom_temp = temp[style_set];
 
-  /* Inicializo el puerto serie. */
-  PEIE = ON; // Habilito interrupcion para perisfericos.
-  INTF = OFF; //flag de interrupcion en B0
-  INTE = ON; // Habilito la interrupcion en el pin B0
-  INTEDG = OFF; //Interrupcion rb0 en el flanco ascendente.
-  GIE = ON;  //habilito las interrupciones globales.
+  /* Set interruptions */
+  PEIE = ON; // Enabel perisferic interruption.
+  INTF = OFF; //Clean interruption flag for RB0.
+  INTE = ON; // Enable interruption for RB0.
+  INTEDG = OFF; //Set ascendent edge interruption on rb0.
+  GIE = ON;  //Enable global interruption.
 
-  /* Comienza loop infinito. */
+  /* Begin infinite loop. */
   while(1)
     {
-      if (estilo_actual != CUSTOM)
-        custom_temp = temp[estilo_actual];
+      if (style_set != CUSTOM)
+        custom_temp = temp[style_set];
 
       val2temp(custom_temp, buffer_temp);
-      show_lines (estilo[estilo_actual], buffer_temp);
+      show_lines (estilo[style_set], buffer_temp);
 
-      /* Leo AD y lo muestro*/
+      /* Read ADC and show the temperature*/
       adc_init(FOSC_64,A1_R0,INT_OFF);
       delay_ms(10);
       temp_read = 0;
-      contaloop = 50;
-      while(contaloop != 0)
+      counterloop = 50;
+      while(counterloop != 0)
         {
           temp_read = temp_read + adc_read(CHAN0) ;
-          contaloop--;
+          counterloop--;
         }
       adc_close();
       temp_read = (temp_read/50) * 0.423;
@@ -112,13 +112,13 @@ int main(int argc, char** argv)
       val2temp((int)temp_read, buffer_temp);
       show_lines ("Temp. Actual", buffer_temp);
 
-      int hist = 5; //Histeresis
-      if (RC5 == APAGADA) { // heladera apagada
-        if (temp_read > (custom_temp + hist))
-          RC5 = ENCENDIDA; //
-      }else { // heladera encendida
-        if (temp_read < (custom_temp - hist))
-          RC5 = APAGADA;
+      int hyst = 5; //Hysteresis
+      if (RC5 == FRIDGE_OFF) {
+        if (temp_read > (custom_temp + hyst))
+          RC5 = FRIDGE_ON; 
+      }else { 
+        if (temp_read < (custom_temp - hyst))
+          RC5 = FRIDGE_OFF;
       }
     } /* End loop infinito */
 
