@@ -1,9 +1,10 @@
 /* 
  * File:   serial.h
- * Author: shisha
- *
- * Created on October 1, 2012, 11:05 PM
+ * Author: Juan Nicola
+ * Comments: 
+ * Revision history: 
  */
+
 
 #ifndef _SERIAL_H_
 #define _SERIAL_H_

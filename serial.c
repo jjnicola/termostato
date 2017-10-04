@@ -1,3 +1,10 @@
+/* 
+ * File:   serial.c
+ * Author: Juan Nicola
+ * Comments: 
+ * Revision history: 
+ */
+
 #include "serial.h"
 
 void init_comms(void)

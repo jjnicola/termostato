@@ -1,3 +1,9 @@
+/* 
+ * File:   delay.h
+ * Author: Juan Nicola
+ * Comments: 
+ * Revision history: 
+ */
 #ifndef DELAY_H
 #define DELAY_H
 

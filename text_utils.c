@@ -1,3 +1,9 @@
+/* 
+ * File:   text_utils.c
+ * Author: Juan Nicola
+ * Comments: 
+ * Revision history: 
+ */
 #include "text_utils.h"
 
 /** Brief Convert an integer into a string with Temperature Format. 

@@ -1,3 +1,9 @@
+/* 
+ * File:   delay.c
+ * Author: Juan Nicola
+ * Comments: 
+ * Revision history: 
+ */
 #include "delay.h"
 
 void delay_ms (int i){
