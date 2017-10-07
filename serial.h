@@ -13,7 +13,7 @@
 
 #define BAUD 9600
 #define NINE 0     /* Use 9bit communication? FALSE=8bit */
-#define OUTPUT 1
+#define OUTPUT 1   // It has to be set, even thought is an output pin
 #define INPUT 1
 #define DIVIDER 103 /* From a datasheets table. Xtal:16Mhz Baud:9600*/
 #define HIGH_SPEED 1
@@ -35,6 +35,6 @@ void init_comms(void);
 void putch(unsigned char);
 unsigned char getch(void);
 unsigned char getche(void);
-
+void comm_send_log (char *);
 
 #endif

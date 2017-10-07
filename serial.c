@@ -12,8 +12,8 @@ void init_comms(void)
         SPBRG = DIVIDER;
         TXSTA = (SPEED|NINE_BITS|0x20);
         RCSTA = (NINE_BITS|0x90);
-        TRISC7=INPUT;
-        TRISC6=OUTPUT;
+        TRISC7 = INPUT; //RX
+        TRISC6 = OUTPUT; //TX
 
         
         SPBRG=DIVIDER;
@@ -22,7 +22,7 @@ void init_comms(void)
         SPEN=1;     //enable serial port pins
         SREN=0;     // Single Receive Enable bit. No effect in Async mode
         TXIE=0;     //disable tx interrupts
-        RCIE=1;     //disable rx interrupts
+        RCIE=1;     //enable rx interrupts
         TX9=0;      //8-bit transmission
         RX9=0;      //8-bit reception
         CREN=1;     //enable reception
@@ -47,11 +47,12 @@ getch() {
         return RCREG;
 }
 
-
-unsigned char
-getche(void)
+/*  @Brief Send a 6 chars length string through the serial port. */
+void comm_send_log (char *buffer_temp)
 {
-        unsigned char c;
-        putch(c = getch());
-        return c;
+  int countloop = 0;
+  for (countloop = 0; countloop < 6; countloop++)
+    putch(buffer_temp[countloop]);
+  putch('\n');
+  putch('\r');
 }
