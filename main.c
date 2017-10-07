@@ -133,7 +133,7 @@ int main (int argc, char** argv)
           new_cmd = 0;
           cmdcount = 0;
           lcd_show_lines ("New setup", buffercmd);
-          //check_cmd (buffercmd);
+          cmdchk (buffercmd);
         }
 
       /* Compare temperatures and set the fridge on or off.
