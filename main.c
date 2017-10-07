@@ -34,20 +34,10 @@
 int MAX, MIN;
 int style_set;
 int custom_temp;
+int hyst = 5; //Hysteresis
 bit new_cmd = 0;
 unsigned char buffercmd[8] = "CMD:VAL\0";
 unsigned char cmdcount = 0;
-
-void show_lines (const char *linea1, const char *linea2)
-{
-  lcd_send (LCD_COMMANDMODE, LCD_CLEAR);
-  lcd_send (LCD_COMMANDMODE, LCD_LINE1);
-  lcd_message (linea1);
-  lcd_send (LCD_COMMANDMODE, LCD_LINE2);
-  delay_ms (100);
-  lcd_message (linea2);
-  delay_ms (500);
-}
 
 void interrupt ISR()
 {
@@ -60,26 +50,50 @@ void interrupt ISR()
         style_set = 0;
       INTF = 0;
     }
+  if (RCIF == 1 )
+    {
+      char a;
+      a = getch();
+      if (new_cmd)
+        return;
+      if (a == '\r')
+        return;
+      if (a == '\n')
+        return;
+      if (a == '%')
+        {
+          new_cmd = 1;
+          cmdcount = 0;
+          return;
+        }
+      buffercmd[cmdcount] = a;
+      cmdcount++;
+      if (cmdcount > 6)
+        cmdcount = 0;
+      //RCIF is cleared by the hardware
+    }
 }
 
 int main (int argc, char** argv)
 {
   TRISA = 0x0d;  // AD input.
   TRISB = 0x07;  //three first pins as input in Port B.
-  TRISC = 0x00;  //Set port C as output port.
+  TRISC5 = OUTPUT;  //Set port C as output port.
   char buffer_temp[] = "00000\0";
   float temp_read = 0;
   int counterloop = 0;
   unsigned char a;
 
-  const char *linea1 = "  Ammann";
-  const char *linea2 = "Cerveceria";
   lcd_init ();
-  show_lines (linea1, linea2);
+  lcd_show_lines ("  Ammann", "Cerveceria");
   delay_ms (3000);
   style_set = ENGLISH;
   custom_temp = temp[style_set];
-
+  
+  /* Init serial port. */
+  init_comms ();
+  delay_ms (100);
+  
   /* Set interruptions */
   PEIE = ON;     // Enabel perisferic interruption.
   INTF = OFF;    //Clean interruption flag for RB0.
@@ -94,7 +108,7 @@ int main (int argc, char** argv)
         custom_temp = temp[style_set];
 
       val2temp (custom_temp, buffer_temp);
-      show_lines (style[style_set], buffer_temp);
+      lcd_show_lines (style[style_set], buffer_temp);
 
       /* Read ADC and show the temperature*/
       adc_init (FOSC_64,A1_R0,INT_OFF);
@@ -110,9 +124,22 @@ int main (int argc, char** argv)
       temp_read = (temp_read/50) * 0.423;
 
       val2temp ((int)temp_read, buffer_temp);
-      show_lines ("Temp. Actual", buffer_temp);
+      lcd_show_lines ("Temp. Actual", buffer_temp);
+      comm_send_log (buffer_temp);
 
-      int hyst = 5; //Hysteresis
+      /* Set the new style or custom temperature. */
+      if (new_cmd == 1)
+        {
+          new_cmd = 0;
+          cmdcount = 0;
+          lcd_show_lines ("New setup", buffercmd);
+          //check_cmd (buffercmd);
+        }
+
+      /* Compare temperatures and set the fridge on or off.
+       * It takes in count the hysteresis to avoid start and stop
+       * the fridge in short time periods.
+       */
       if (RC5 == FRIDGE_OFF)
         {
           if (temp_read > (custom_temp + hyst))
@@ -123,6 +150,8 @@ int main (int argc, char** argv)
           if (temp_read < (custom_temp - hyst))
             RC5 = FRIDGE_OFF;
         }
+
+      
     } /* End loop infinito */
 
   return (EXIT_SUCCESS);
