@@ -62,4 +62,5 @@ char lcd_hexa(char a);
 void lcd_showint(unsigned int value);
 void lcd_showintright(unsigned int value, int index);
 void lcd_sendentero(char mode, long int datoentero);
+void lcd_show_lines (const char *line1, const char *line2);
 #endif

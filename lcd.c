@@ -71,3 +71,14 @@ void lcd_message (const char * mess )
     mess++ ;
   }
 }
+
+void lcd_show_lines (const char *line1, const char *line2)
+{
+  lcd_send (LCD_COMMANDMODE, LCD_CLEAR);
+  lcd_send (LCD_COMMANDMODE, LCD_LINE1);
+  lcd_message (line1);
+  lcd_send (LCD_COMMANDMODE, LCD_LINE2);
+  delay_ms (100);
+  lcd_message (line2);
+  delay_ms (500);
+}
