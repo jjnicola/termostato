@@ -11,10 +11,12 @@
 #define	TEXT_UTILS_H
 
 #include <xc.h> // include processor files - each processor file is guarded.  
-enum cmds {TMP = 0, STY, RST};
-char cmd[3][4] = {"TMP\0", "STY\0", "RST\0"};
+int cmdnum = 4;
+enum cmds {TMP = 0, STY, RST, GTL};
+char cmd[4][4] = {"TMP\0", "STY\0", "RST\0", "GTL\0"};
 
 void val2temp (int, char *);
-void cmdchk(char *);
+int cmd2int (char *);
+int cmdchk(char *);
 
 #endif

@@ -125,15 +125,38 @@ int main (int argc, char** argv)
 
       val2temp ((int)temp_read, buffer_temp);
       lcd_show_lines ("Temp. Actual", buffer_temp);
-      comm_send_log (buffer_temp);
-
+      
       /* Set the new style or custom temperature. */
       if (new_cmd == 1)
         {
+          int selcmd;
           new_cmd = 0;
           cmdcount = 0;
           lcd_show_lines ("New setup", buffercmd);
-          cmdchk (buffercmd);
+          selcmd = cmdchk (buffercmd);
+          if (selcmd == TMP )
+            {          
+              custom_temp = cmd2int (buffercmd);
+              style_set = CUSTOM;
+              lcd_show_lines ("Configure\0", buffercmd);
+            }
+          if (selcmd == STY)
+            {
+              style_set = cmd2int (buffercmd);
+              lcd_show_lines ("New Style\0", style[style_set]);
+            }
+          if (selcmd == RST)
+            {
+              MAX = 0;
+              MIN = 0;
+              style_set = ENGLISH;
+              lcd_show_lines ("Reset\0", "...\0");
+            }
+          if (selcmd == GTL)
+            {
+              comm_send_log (buffer_temp);
+            }
+          
         }
 
       /* Compare temperatures and set the fridge on or off.
