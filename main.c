@@ -80,6 +80,7 @@ int main (int argc, char** argv)
   TRISB = 0x07;  //three first pins as input in Port B.
   TRISC5 = OUTPUT;  //Set port C as output port.
   char buffer_temp[] = "00000\0";
+  char log_data[] =  "000000S\0";
   float temp_read = 0;
   int counterloop = 0;
   unsigned char a;
@@ -154,7 +155,9 @@ int main (int argc, char** argv)
             }
           if (selcmd == GTL)
             {
-              comm_send_log (buffer_temp);
+              val2temp ((int)temp_read, log_data);
+              log_data[5] = 48 + RC5;
+              comm_send_log (log_data);
             }
           
         }

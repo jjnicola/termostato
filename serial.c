@@ -47,12 +47,15 @@ getch() {
         return RCREG;
 }
 
-/*  @Brief Send a 6 chars length string through the serial port. */
-void comm_send_log (char *buffer_temp)
+/**  @Brief Send a 8 chars length string through the serial port. 
+     19.1C1S -> 19.1 Cent. degrees and 1S is device status ON.
+ */
+
+void comm_send_log (char *log_data)
 {
-  int countloop = 0;
-  for (countloop = 0; countloop < 6; countloop++)
-    putch(buffer_temp[countloop]);
-  putch('\n');
-  putch('\r');
+  while (*log_data)
+    {
+      putch (*log_data);
+      log_data++;
+    }
 }
