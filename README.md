@@ -1,4 +1,4 @@
-# termostato
+# Termostato
 Beer fermentation temperature control
 
 This a temperature control for beer fermentation. Since the yeast is an alive organism, it needs good condition to live. If I want a good beer, I have to provide it not only sugar but also a confortable enviroment. Therefore this temperature control allows me to 
