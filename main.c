@@ -34,7 +34,7 @@
 int MAX, MIN;
 int style_set;
 int custom_temp;
-int hyst = 5; //Hysteresis
+int hyst = 2; //Hysteresis
 bit new_cmd = 0;
 unsigned char buffercmd[8] = "CMD:VAL\0";
 unsigned char cmdcount = 0;
@@ -78,12 +78,12 @@ int main (int argc, char** argv)
 {
   TRISA = 0x0d;  // AD input.
   TRISB = 0x07;  //three first pins as input in Port B.
-  TRISC5 = OUTPUT;  //Set port C as output port.
   char buffer_temp[] = "00000\0";
   char log_data[] =  "000000S\0";
   float temp_read = 0;
   int counterloop = 0;
   unsigned char a;
+  int fridge_state = 0;
 
   lcd_init ();
   lcd_show_lines ("  Ammann", "Cerveceria");
@@ -94,6 +94,7 @@ int main (int argc, char** argv)
   /* Init serial port. */
   init_comms ();
   delay_ms (100);
+  TRISCbits.TRISC5 = 0;  //Set port C as output port.
   
   /* Set interruptions */
   PEIE = ON;     // Enabel perisferic interruption.
@@ -161,20 +162,21 @@ int main (int argc, char** argv)
             }
           
         }
-
       /* Compare temperatures and set the fridge on or off.
        * It takes in count the hysteresis to avoid start and stop
        * the fridge in short time periods.
        */
-      if (RC5 == FRIDGE_OFF)
+      if (fridge_state == FRIDGE_OFF)
         {
           if (temp_read > (custom_temp + hyst))
             RC5 = FRIDGE_ON; 
+          fridge_state = FRIDGE_ON;
         }
       else
         { 
           if (temp_read < (custom_temp - hyst))
             RC5 = FRIDGE_OFF;
+            fridge_state = FRIDGE_OFF;
         }
 
       
