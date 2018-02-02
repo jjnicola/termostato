@@ -12,3 +12,9 @@ This project will contains:
 - The code to be burned into the PIC.
 - The schematics
 - list of components.
+
+# Termoclient
+This project includes a daemon to colect information from the device and to manage it. The information is saved into a sqlite3 db.
+
+# Termoweb
+This is a simple Django project that allows to see all the information collected with Termoclient. It also allows to set a new profile in the Temperature Controller (from fermentation to maduration phase). The information of each fermented batch is saved and shown as a plot in (almost) real time.
