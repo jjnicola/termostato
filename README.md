@@ -1,4 +1,4 @@
-# termostato
+# Termostato
 Beer fermentation temperature control
 
 This a temperature control for beer fermentation. Since the yeast is an alive organism, it needs good condition to live. If I want a good beer, I have to provide it not only sugar but also a confortable enviroment. Therefore this temperature control allows me to 
@@ -12,3 +12,9 @@ This project will contains:
 - The code to be burned into the PIC.
 - The schematics
 - list of components.
+
+# Termoclient
+This project includes a daemon to colect information from the device and to manage it. The information is saved into a sqlite3 db.
+
+# Termoweb
+This is a simple Django project that allows to see all the information collected with Termoclient. It also allows to set a new profile in the Temperature Controller (from fermentation to maduration phase). The information of each fermented batch is saved and shown as a plot in (almost) real time.
