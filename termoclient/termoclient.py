@@ -31,17 +31,14 @@ def get_bid_from_bnumber(batch_number):
 
     conn = sqlite3.connect('../termoweb/termodb.sqlite3')
     c = conn.cursor()
-    data = "select id from polls_batchinfo where batch_number = "+ batch_number
+    data = "select id from polls_batchinfo where batch_number = "+ str(batch_number)
     c.execute(data)
     return int(c.fetchone()[0])
 
 def savedata(dret, batch_id):
     #format temperature
-    print (dret)
     temp = float(dret[:-3])
-    print (temp)
     status = int(dret[5:6])
-    print (status)
     #format timestamp
     taux = time.localtime()
     log_date = str(taux.tm_year)+"-"+str(taux.tm_mon)+"-"+str(taux.tm_mday)+" "+str(taux.tm_hour)+":"+str(taux.tm_min)+":"+str(taux.tm_sec)
