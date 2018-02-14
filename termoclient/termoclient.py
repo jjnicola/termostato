@@ -11,13 +11,6 @@ import sqlite3
 from telnetlib import Telnet as tn
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.propagate = False
-fh = logging.FileHandler("/tmp/test.log", "w")
-fh.setLevel(logging.DEBUG)
-logger.addHandler(fh)
-keep_fds = [fh.stream.fileno()]
 
 
 VERSION = "Termostato Client v0.1"
@@ -131,17 +124,10 @@ class TermoSql():
         except sqlite3.Error as e:
             logger.debug ("Error OS in TermoSql Class:", e.args[0])
 
-def mainloop():
+def mainloop(host, batch_number):
+
     logger.debug("main loop")
-    host = "192.168.0.44"
-    batch_number = 97
     logger.debug(host)
-    #if host is False:
-    #    logger.debug("No host")
-    #    sys.exit(1)
-    #if batch_number is False:
-    #    logger.debug("No batch")
-    #    sys.exit(1)
 
     soc = False
     while soc is False:
@@ -308,7 +294,7 @@ def main(argv):
     if foreground is True:
         newdaemon = Daemonize(app="termoclient",
                               pid=pid,
-                              action=mainloop,
+                              action=None,
                               keep_fds=keep_fds,
                               foreground=True, verbose=True,
                               chdir = os.getcwd())
@@ -316,12 +302,21 @@ def main(argv):
     else:
         newdaemon = Daemonize(app="termoclient",
                               pid=pid,
-                              action=mainloop,
+                              action=None,
                               keep_fds=keep_fds,
                               foreground=False, verbose=True,
                               chdir = os.getcwd())
     newdaemon.start()
+    mainloop(host, batch_number)
 
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    logger.propagate = False
+    fh = logging.FileHandler("/tmp/test.log", "w")
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
+    keep_fds = [fh.stream.fileno()]
+
+    main(sys.argv[1:])
