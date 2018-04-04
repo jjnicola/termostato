@@ -2,6 +2,8 @@
 
 import sys, getopt
 import signal, os
+import socket
+import select
 import traceback
 import time
 from daemonize import Daemonize
@@ -12,11 +14,9 @@ from telnetlib import Telnet as tn
 
 
 
-
 VERSION = "Termostato Client v0.1"
-pid = "/tmp/test.pid"
-#batch_id = False
-#host = False
+pid = "/tmp/test1.pid"
+server_address = '/tmp/termoclient.sock'
 
 class TermoComm():
 
@@ -167,6 +167,25 @@ def mainloop(host, batch_number):
         except:
             logger.debug("ERROR: Not possible to connect to the DB.")
 
+        # Make sure the socket does not already exist
+        try:
+            os.unlink(server_address)
+        except OSError:
+            if os.path.exists(server_address):
+                raise
+
+    # Create a UDS socket
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    # Bind the socket to the port
+    print >>sys.stderr, 'starting up on %s' % server_address
+    sock.bind(server_address)
+
+    # Listen for incoming connections
+    sock.listen(5)
+    read_list = [server_socket]
+
     #Start Infinite loop
     while True:
         data = False
@@ -183,6 +202,22 @@ def mainloop(host, batch_number):
             logger.debug("ERROR: Not possible to save data in the DB. Retrying in 10 seconds.")
         time.sleep (10)
 
+        # Check for client connection to set the device.
+        readable, writable, errored = select.select(read_list, [], [])
+        for s in readable:
+            if s is server_socket:
+                client_socket, address = server_socket.accept()
+                read_list.append(client_socket)
+                print "Connection from", address
+            else:
+                data = s.recv(1024)
+                if data:
+                    print ("server recv: %s", data)
+                    #s.send(data)
+                else:
+                    s.close()
+                    read_list.remove(s)
+
 def help():
     '''Print the help.'''
     print (VERSION)
@@ -196,12 +231,29 @@ def help():
     print ("\t-v | --verbose                                     : Verbose enabled.")
     print ("\t-f | --foreground                                  : Not daemonize. Keep in foreground for debugging pourposes.")
     print ("")
+    print ("\t-c <dev config> | --config=<dev-config>            : Set the device to a beer profile with predefined temperatures")
+    print ("                                                       or a custom one. Also to reset the device.")
+    print ("\t List of profiles: ")
+    print ("\t\t 0 = MADURACION 0C")
+    print ("\t\t 1 = LAGER 10C")
+    print ("\t\t 2 = KOLSCH 15C")
+    print ("\t\t 3 = SCOTTISH 16C")
+    print ("\t\t 4 = ENGLISH 18C")
+    print ("\t\t 5 = WEIZEN 19C")
+    print ("\t\t 6 = BELGA 20C")
+    print ("\t\t 7 = CUSTOM 0-25C")
+    print ("")
+    print ("\t\t Example 1: for a belga profile: --config STY:006")
+    print ("\t\t Example 2: for a Maduration profile: --config STY:000")
+    print ("\t\t Example 3: to reset de device: --config RST:000")
+    print ("\t\t Example 4: for a custom Temp 18.5C: --config TMP:185")
+    print ("")
 
 
 def main(argv):
 
     try:
-        opts, args = getopt.getopt(argv,"h:n:b:s:HVvf",["host=","new-batch=","style=","batch-number=", "help","verbose","version","foreground"])
+        opts, args = getopt.getopt(argv,"h:n:b:s:HVvfc:",["host=","new-batch=","style=","batch-number=", "help","verbose","version","foreground","config="])
     except getopt.GetoptError:
         print ('Error in given arguments. Try datawriter.py -H|--help for help.')
         sys.exit(2)
@@ -212,6 +264,7 @@ def main(argv):
     batch_number = False
     host = False
     foreground = False
+    dev_set = False
     for o, a in opts:
         if o in ("-H", "--help"):
             help ()
@@ -232,6 +285,43 @@ def main(argv):
         elif o in ("-f", "--foreground"):
             foreground = True
             print ("The process will not be demonized for debugging pourposes.")
+        elif o in ("-c", "--config"):
+            dev_set = a
+
+    if server == 0:
+        if dev_set is True:
+            print ("ERROR: Arguments needed to set the device.")
+            print("If you think this is an error, look for a running process, socket file or pid file")
+            sys.exit()
+
+        # Create a UDS socket
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+        # Connect the socket to the port where the server is listening
+        print >>sys.stderr, 'connecting to %s' % server_address
+        try:
+            sock.connect(server_address)
+        except socket.error, msg:
+            print >>sys.stderr, msg
+            sys.exit(1)
+
+        try:
+            # Send data
+            message = 'This is the message.  It will be repeated.'
+            print >>sys.stderr, 'sending "%s"' % dev_set
+            sock.sendall(dev_set)
+
+            amount_received = 0
+            amount_expected = len(message)
+
+            while amount_received < amount_expected:
+                data = sock.recv(16)
+                amount_received += len(data)
+                print >>sys.stderr, 'received "%s"' % data
+        finally:
+            print >>sys.stderr, 'closing socket'
+            sock.close()
+
 
     if host is False:
         print ("ERROR: I need the host name or an IP address.")
@@ -311,10 +401,17 @@ def main(argv):
 
 
 if __name__ == "__main__":
+
+    # Check if it is already running.
+    if os.path.isfile(server_address):
+        server = 1 #Becomes a server
+    else:
+        server = 0 #Becomes a client
+
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
-    fh = logging.FileHandler("/tmp/test.log", "w")
+    fh = logging.FileHandler("/tmp/test1.log", "w")
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
     keep_fds = [fh.stream.fileno()]
