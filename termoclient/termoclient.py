@@ -38,6 +38,14 @@ class TermoComm():
             logger.debug ("Error OS in TermoComm Class: {0}".format(err))
             return False
 
+    def SetDev(self, soc, profile):
+        try:
+            data = profile + '%'
+            soc.write(data.encode('ascii'))
+        except EOFError as er:
+            logger.debug ("Error OS in TermoComm Class: {0}".format(err))
+            return False
+
     def InitController(self, soc):
         try:
             soc.write(("0000000%").encode('ascii'))
@@ -177,14 +185,15 @@ def mainloop(host, batch_number):
     # Create a UDS socket
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setblocking(0)
 
     # Bind the socket to the port
-    print >>sys.stderr, 'starting up on %s' % server_address
+    logger.debug ("starting up on ")
     sock.bind(server_address)
 
     # Listen for incoming connections
     sock.listen(5)
-    read_list = [server_socket]
+    read_list = [sock]
 
     #Start Infinite loop
     while True:
@@ -200,19 +209,20 @@ def mainloop(host, batch_number):
                 sqlquery.SaveData(dbconn, data, batch_id)
         except:
             logger.debug("ERROR: Not possible to save data in the DB. Retrying in 10 seconds.")
-        time.sleep (10)
-
+        #time.sleep (10)
+        logger.debug ("antes de leer")
         # Check for client connection to set the device.
-        readable, writable, errored = select.select(read_list, [], [])
+        readable, writable, errored = select.select(read_list, [], [], 10)
         for s in readable:
-            if s is server_socket:
-                client_socket, address = server_socket.accept()
+            if s is sock:
+                client_socket, address = sock.accept()
                 read_list.append(client_socket)
-                print "Connection from", address
+                logger.debug ("Connection from")
             else:
                 data = s.recv(1024)
                 if data:
-                    print ("server recv: %s", data)
+                    logger.debug ("server recv: %s", data)
+                    newcontroller.SetDev(soc, data)
                     #s.send(data)
                 else:
                     s.close()
@@ -250,7 +260,7 @@ def help():
     print ("")
 
 
-def main(argv):
+def main(argv, server):
 
     try:
         opts, args = getopt.getopt(argv,"h:n:b:s:HVvfc:",["host=","new-batch=","style=","batch-number=", "help","verbose","version","foreground","config="])
@@ -287,8 +297,9 @@ def main(argv):
             print ("The process will not be demonized for debugging pourposes.")
         elif o in ("-c", "--config"):
             dev_set = a
-
-    if server == 0:
+    print (server)
+    if server is False:
+        print ("soy client")
         if dev_set is True:
             print ("ERROR: Arguments needed to set the device.")
             print("If you think this is an error, look for a running process, socket file or pid file")
@@ -301,7 +312,7 @@ def main(argv):
         print >>sys.stderr, 'connecting to %s' % server_address
         try:
             sock.connect(server_address)
-        except socket.error, msg:
+        except sock.error, msg:
             print >>sys.stderr, msg
             sys.exit(1)
 
@@ -311,16 +322,17 @@ def main(argv):
             print >>sys.stderr, 'sending "%s"' % dev_set
             sock.sendall(dev_set)
 
-            amount_received = 0
-            amount_expected = len(message)
-
-            while amount_received < amount_expected:
-                data = sock.recv(16)
-                amount_received += len(data)
-                print >>sys.stderr, 'received "%s"' % data
+            #amount_received = 0
+            #amount_expected = len(message)
+            #
+            #while amount_received < amount_expected:
+            #    data = sock.recv(16)
+            #    amount_received += len(data)
+            #    print >>sys.stderr, 'received "%s"' % data
         finally:
             print >>sys.stderr, 'closing socket'
             sock.close()
+        sys.exit(0)
 
 
     if host is False:
@@ -403,10 +415,12 @@ def main(argv):
 if __name__ == "__main__":
 
     # Check if it is already running.
-    if os.path.isfile(server_address):
-        server = 1 #Becomes a server
+    if os.path.exists(server_address):
+        print ("Client")
+        server = False #Exist and becomes a client
     else:
-        server = 0 #Becomes a client
+        print ("server")
+        server = True #No exist and becomes a server
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
@@ -416,4 +430,4 @@ if __name__ == "__main__":
     logger.addHandler(fh)
     keep_fds = [fh.stream.fileno()]
 
-    main(sys.argv[1:])
+    main(sys.argv[1:],server)
