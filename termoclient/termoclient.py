@@ -15,7 +15,7 @@ from telnetlib import Telnet as tn
 
 
 VERSION = "Termostato Client v0.1"
-pid = "/tmp/test1.pid"
+pid = "/tmp/test.pid"
 server_address = '/tmp/termoclient.sock'
 
 class TermoComm():
@@ -42,6 +42,8 @@ class TermoComm():
         try:
             data = profile + '%'
             soc.write(data.encode('ascii'))
+            time.sleep (10)
+            return True
         except EOFError as er:
             logger.debug ("Error OS in TermoComm Class: {0}".format(err))
             return False
@@ -132,6 +134,53 @@ class TermoSql():
         except sqlite3.Error as e:
             logger.debug ("Error OS in TermoSql Class:", e.args[0])
 
+
+
+
+def client(dev_set):
+
+        # Create a UDS socket
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+        # Connect the socket to the port where the server is listening
+        print >>sys.stderr, 'connecting to %s' % server_address
+        try:
+            sock.connect(server_address)
+        except sock.error, msg:
+            print >>sys.stderr, msg
+            sys.exit(1)
+
+        try:
+            # Send data
+            print >>sys.stderr, 'Sending "%s"' % dev_set
+            sock.sendall(dev_set)
+
+            amount_received = 0
+            amount_expected = len(dev_set)
+
+            while amount_received < amount_expected:
+                data = sock.recv(16)
+                amount_received += len(data)
+                print >>sys.stderr, 'Received "%s" successfully' % data
+        finally:
+            print >>sys.stderr, 'Closing socket. Bye bye!'
+            sock.close()
+
+
+def kill_server(dbconn, devsoc, sock):
+    dbconn.close()
+    devsoc.close()
+    sock.close()
+    try:
+        logger.debug("Old socket removed")
+        os.unlink(server_address)
+    except OSError:
+        if os.path.exists(server_address):
+            logger.debug("Not possible to delete the old socket.")
+    logger.debug("Server Killed")
+    sys.exit(0)
+
+
 def mainloop(host, batch_number):
 
     logger.debug("main loop")
@@ -188,7 +237,7 @@ def mainloop(host, batch_number):
     sock.setblocking(0)
 
     # Bind the socket to the port
-    logger.debug ("starting up on ")
+    logger.debug ("Starting up on %s.", server_address)
     sock.bind(server_address)
 
     # Listen for incoming connections
@@ -209,24 +258,42 @@ def mainloop(host, batch_number):
                 sqlquery.SaveData(dbconn, data, batch_id)
         except:
             logger.debug("ERROR: Not possible to save data in the DB. Retrying in 10 seconds.")
-        #time.sleep (10)
-        logger.debug ("antes de leer")
+        time.sleep (10)
+
         # Check for client connection to set the device.
-        readable, writable, errored = select.select(read_list, [], [], 10)
+        readable, writable, errored = select.select(read_list, [], read_list, 10)
         for s in readable:
             if s is sock:
                 client_socket, address = sock.accept()
+                client_socket.setblocking(0)
                 read_list.append(client_socket)
-                logger.debug ("Connection from")
+                logger.debug ("Client connected.")
             else:
-                data = s.recv(1024)
-                if data:
-                    logger.debug ("server recv: %s", data)
-                    newcontroller.SetDev(soc, data)
-                    #s.send(data)
+                settemp = s.recv(1024)
+                if settemp:
+                    logger.debug ("Server recv: %s", settemp)
+                    if settemp == "KILLSERVER":
+                        logger.debug ("Kill requested.")
+                        s.send(settemp)
+                        kill_server(dbconn, soc, sock)
+
+                    ret = newcontroller.SetDev(soc, settemp)
+                    if ret:
+                        logger.debug ("New configuration sent.")
+                    else:
+                        logger.debug ("Error sending configuration.")
+                    s.send(settemp)
+                    settemp = None
                 else:
                     s.close()
                     read_list.remove(s)
+
+        # Handle "exceptional conditions"
+        for s in errored:
+            print ('handling exceptional condition for', s.getpeername())
+            # Stop listening for input on the connection
+            read_list.remove(s)
+            s.close()
 
 def help():
     '''Print the help.'''
@@ -297,41 +364,14 @@ def main(argv, server):
             print ("The process will not be demonized for debugging pourposes.")
         elif o in ("-c", "--config"):
             dev_set = a
-    print (server)
+
     if server is False:
-        print ("soy client")
         if dev_set is True:
             print ("ERROR: Arguments needed to set the device.")
             print("If you think this is an error, look for a running process, socket file or pid file")
             sys.exit()
 
-        # Create a UDS socket
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-
-        # Connect the socket to the port where the server is listening
-        print >>sys.stderr, 'connecting to %s' % server_address
-        try:
-            sock.connect(server_address)
-        except sock.error, msg:
-            print >>sys.stderr, msg
-            sys.exit(1)
-
-        try:
-            # Send data
-            message = 'This is the message.  It will be repeated.'
-            print >>sys.stderr, 'sending "%s"' % dev_set
-            sock.sendall(dev_set)
-
-            #amount_received = 0
-            #amount_expected = len(message)
-            #
-            #while amount_received < amount_expected:
-            #    data = sock.recv(16)
-            #    amount_received += len(data)
-            #    print >>sys.stderr, 'received "%s"' % data
-        finally:
-            print >>sys.stderr, 'closing socket'
-            sock.close()
+        client (dev_set)
         sys.exit(0)
 
 
@@ -414,20 +454,19 @@ def main(argv, server):
 
 if __name__ == "__main__":
 
+    logger = logging.getLogger(__name__)
+
     # Check if it is already running.
     if os.path.exists(server_address):
-        print ("Client")
         server = False #Exist and becomes a client
     else:
-        print ("server")
         server = True #No exist and becomes a server
 
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    logger.propagate = False
-    fh = logging.FileHandler("/tmp/test1.log", "w")
-    fh.setLevel(logging.DEBUG)
-    logger.addHandler(fh)
-    keep_fds = [fh.stream.fileno()]
+        logger.setLevel(logging.DEBUG)
+        logger.propagate = False
+        fh = logging.FileHandler("/tmp/test.log", "w")
+        fh.setLevel(logging.DEBUG)
+        logger.addHandler(fh)
+        keep_fds = [fh.stream.fileno()]
 
     main(sys.argv[1:],server)
