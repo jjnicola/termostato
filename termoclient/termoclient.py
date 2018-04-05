@@ -63,7 +63,6 @@ class TermoComm():
 class TermoSql():
 
     def NewDB(self):
-        logger.debug("new db")
         try:
             dbconn = sqlite3.connect('../termoweb/termodb.sqlite3')
             logger.debug("new db: "+str(dbconn))
@@ -307,6 +306,7 @@ def help():
     print ("\t-V | --version                                     : Show version.")
     print ("\t-v | --verbose                                     : Verbose enabled.")
     print ("\t-f | --foreground                                  : Not daemonize. Keep in foreground for debugging pourposes.")
+    print ("\t-k | --kill-server                                 : Kill the server in a clean way.")
     print ("")
     print ("\t-c <dev config> | --config=<dev-config>            : Set the device to a beer profile with predefined temperatures")
     print ("                                                       or a custom one. Also to reset the device.")
@@ -330,7 +330,11 @@ def help():
 def main(argv, server):
 
     try:
-        opts, args = getopt.getopt(argv,"h:n:b:s:HVvfc:",["host=","new-batch=","style=","batch-number=", "help","verbose","version","foreground","config="])
+        opts, args = getopt.getopt(argv,"h:n:b:s:HVvfc:k",
+                                   ["host=","new-batch=",
+                                    "style=","batch-number=",
+                                    "help","verbose","version",
+                                    "foreground","config=","--kill-server"])
     except getopt.GetoptError:
         print ('Error in given arguments. Try datawriter.py -H|--help for help.')
         sys.exit(2)
@@ -342,6 +346,7 @@ def main(argv, server):
     host = False
     foreground = False
     dev_set = False
+    killserver = False
     for o, a in opts:
         if o in ("-H", "--help"):
             help ()
@@ -364,16 +369,20 @@ def main(argv, server):
             print ("The process will not be demonized for debugging pourposes.")
         elif o in ("-c", "--config"):
             dev_set = a
+        elif o in ("-k", "--kill-server"):
+            killserver = True
 
     if server is False:
+        if killserver is True:
+            client ("KILLSERVER")
+            sys.exit(0)
+
         if dev_set is True:
             print ("ERROR: Arguments needed to set the device.")
             print("If you think this is an error, look for a running process, socket file or pid file")
-            sys.exit()
-
+            sys.exit(1)
         client (dev_set)
         sys.exit(0)
-
 
     if host is False:
         print ("ERROR: I need the host name or an IP address.")
