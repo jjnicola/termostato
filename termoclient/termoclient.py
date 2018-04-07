@@ -9,130 +9,16 @@ import time
 from daemonize import Daemonize
 import logging
 
-import sqlite3
-from telnetlib import Telnet as tn
+from termomodule import  TermoSql, TermoComm
+
+#import sqlite3
+#from telnetlib import Telnet as tn
 
 
 
 VERSION = "Termostato Client v0.1"
 pid = "/tmp/test.pid"
 server_address = '/tmp/termoclient.sock'
-
-class TermoComm():
-
-    def NewConn(self, host):
-        logger.debug("new telnet connection")
-
-        try:
-            soc = tn(host)
-            return soc
-        except EOFError as er:
-            logger.debug ("Error OS in TermoComm Class: {0}".format(err))
-
-    def GetLog(self, soc):
-        try:
-            soc.write(("GTL:000%").encode('ascii'))
-            dret = soc.read_until(b'S')
-            return dret
-        except EOFError as er:
-            logger.debug ("Error OS in TermoComm Class: {0}".format(err))
-            return False
-
-    def SetDev(self, soc, profile):
-        try:
-            data = profile + '%'
-            soc.write(data.encode('ascii'))
-            time.sleep (10)
-            return True
-        except EOFError as er:
-            logger.debug ("Error OS in TermoComm Class: {0}".format(err))
-            return False
-
-    def InitController(self, soc):
-        try:
-            soc.write(("0000000%").encode('ascii'))
-            time.sleep (10)
-            return True
-        except EOFError as er:
-            logger.debug ("Error OS in TermoComm Class: {0}".format(err))
-            return False
-
-    def CloseConn(self, soc):
-        soc.close()
-
-class TermoSql():
-
-    def NewDB(self):
-        try:
-            dbconn = sqlite3.connect('../termoweb/termodb.sqlite3')
-            logger.debug("new db: "+str(dbconn))
-            return dbconn
-        except sqlite3.Error as e:
-            logger.debug ("Error OS in TermoSql Class:", e.args[0])
-
-    def CloseDB(self,dbconn):
-        dbconn.close()
-
-    def Getbidfrombnumber(self, dbconn ,batch_number):
-        '''Get the batch id from the db using the batch number'''
-        try:
-            c = dbconn.cursor()
-            data = "select id from polls_batchinfo where batch_number = "+ str(batch_number)
-            c.execute(data)
-            return int(c.fetchone()[0])
-        except sqlite3.Error as e:
-            logger.debug ("Error OS in TermoSql Class:", e.args[0])
-
-    def SaveData(self, dbconn, dret, batch_id):
-        try:
-            temp = float(dret[:-3])
-            status = int(dret[5:6])
-            taux = time.localtime()
-            log_date = (str(taux.tm_year)+"-"+str(taux.tm_mon)+"-"+
-                       str(taux.tm_mday)+" "+str(taux.tm_hour)+
-                       ":"+str(taux.tm_min)+":"+str(taux.tm_sec))
-            c = dbconn.cursor()
-            data = "INSERT INTO polls_fermentationlog(log_date, density, dev_status, batch_id, temperature) VALUES ('" + log_date + "',1048," + str(status) + "," + str(batch_id) + "," + str(temp) + ")"
-            c.execute(data)
-            dbconn.commit()
-        except sqlite3.Error as e:
-            logger.debug ("Error OS in TermoSql Class:", e.args[0])
-
-
-    def GetLastBatchNumber(self,dbconn):
-
-        try:
-            c = dbconn.cursor()
-            data = "select batch_number from polls_batchinfo order by batch_number desc limit 1"
-            c.execute(data)
-            return int(c.fetchone()[0])
-        except sqlite3.Error as e:
-            logger.debug ("Error OS in TermoSql Class:", e.args[0])
-
-    def CheckBatchNumber(self, dbconn, bnumber):
-        try:
-            c = dbconn.cursor()
-            data = "select batch_number from polls_batchinfo where batch_number = " +str(bnumber)
-            c.execute(data)
-            ret = c.fetchall()
-            if not ret:
-                return False
-            else:
-                return True
-        except sqlite3.Error as e:
-            logger.debug ("Error OS in TermoSql Class:", e.args[0])
-
-    def CreateNewBatch (self, dbconn, name, bnumber, style):
-        try:
-            taux = time.localtime()
-            log_date = str(taux.tm_year)+"-"+str(taux.tm_mon)+"-"+str(taux.tm_mday)+" "+str(taux.tm_hour)+":"+str(taux.tm_min)
-            c = dbconn.cursor()
-            data = "INSERT INTO polls_batchinfo (batch_number, batch_name, batch_style, batch_date) VALUES ("+str(bnumber)+",'"+name+"','"+style+"','"+log_date+"')"
-            c.execute(data)
-            dbconn.commit()
-        except sqlite3.Error as e:
-            logger.debug ("Error OS in TermoSql Class:", e.args[0])
-
 
 
 
@@ -191,7 +77,7 @@ def mainloop(host, batch_number):
             logger.debug("trying to connect")
 
             newcontroller = TermoComm()
-            soc = newcontroller.NewConn(host)
+            soc = newcontroller.NewConn(host,logger)
             logger.debug("new db")
             logger.debug("soc: "+ str(soc))
 
@@ -212,7 +98,7 @@ def mainloop(host, batch_number):
     while dbconn is False:
         try:
             sqlquery = TermoSql()
-            dbconn = sqlquery.NewDB()
+            dbconn = sqlquery.NewDB(logger)
             logger.debug("Connected to the DB: " + str(dbconn))
             batch_id = sqlquery.Getbidfrombnumber(dbconn, batch_number)
             if batch_id is None:
@@ -391,7 +277,7 @@ def main(argv, server):
         sys.exit()
 
     sqlquery = TermoSql()
-    dbconn = sqlquery.NewDB()
+    dbconn = sqlquery.NewDB(logger)
     if batch_number is False and new_batch is False:
         print ("ERROR: Missing arguments.");
         print ("Hint: Run the program with a batch id to add log data to the current batch:");
@@ -429,12 +315,14 @@ def main(argv, server):
             print ("Batch creation aborted. Bye bye!")
             sys.exit()
     elif isbatchid is False:
-        print ("ERROR: the given batch number does not exist. Please give a right one or create a new batch.")
+        print ("ERROR: the given batch number does not exist. \
+                Please give a right one or create a new batch.")
         sys.exit()
     elif isbatchid is True:
         answer = ""
         while (answer not in ("y","n")):
-            print ("Are you sure you want to add log entries to the batch number " + str(batch_number) +"? (y/n)")
+            print ("Are you sure you want to add log entries to "+
+                    "the batch number " + str(batch_number) +"? (y/n)")
             answer = sys.stdin.read(1)
         if answer.lower() == "n":
             print ("Bye bye!")
