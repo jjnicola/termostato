@@ -31,8 +31,8 @@ def client(dev_set):
         print >>sys.stderr, 'connecting to %s' % server_address
         try:
             sock.connect(server_address)
-        except sock.error, msg:
-            print >>sys.stderr, msg
+        except sock.error:
+            print >>sys.stderr
             sys.exit(1)
 
         try:
