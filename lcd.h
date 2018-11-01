@@ -21,31 +21,31 @@
 /*  PORTD:2  ----->  LCD E               */
 
 
-#define LCD_DATA                 PORTD // Puerto de datos
-#define LCD_DATA_TRIS            TRISD // Control del puerto de datos
-#define LCD_RS                   RD1   // Modo
-#define LCD_ENABLE               RD2   // Habilitación/deshab. en envíos de datos al lcd.
+#define LCD_DATA                 PORTD // Data Port
+#define LCD_DATA_TRIS            TRISD // Data Port Control
+#define LCD_RS                   RD1   // Mode
+#define LCD_ENABLE               RD2   // Data Send enable/disable
 #define LCD_CLEAR                0x01 // Clear Display
-#define LCD_HOME                 0x02 // Cursor a Home
-#define LCD_NORMAL               0x06 // Cursor en modo incrementar.
+#define LCD_HOME                 0x02 // Cursor to Home
+#define LCD_NORMAL               0x06 // Cursor in incremental mode
 #define LCD_REV                  0x04 // Normal-reverse
-#define LCD_SCROLL               0x07 // Usa scroll
+#define LCD_SCROLL               0x07 // Use scroll
 #define LCD_SCROLL_REV           0x05 // Reverse
-#define LCD_D8_BIT               0x38 // 8 bit 2 lineas ( 5x7 font )
+#define LCD_D8_BIT               0x38 // 8 bit 2 lines ( 5x7 font )
 #define LCD_D4_BIT_CONF          0x20 // 4 bit
-#define LCD_D4_BIT               0x28 // 4 bit 2 lineas ( 5x7 font )
+#define LCD_D4_BIT               0x28 // 4 bit 2 lines ( 5x7 font )
 #define LCD_RESET                0x30 // Reset
-#define LCD_DIS_ON               0x0C // Display on modo 2 lineas
+#define LCD_DIS_ON               0x0C // Display on mode 2 lines
 #define LCD_DIS_OFF              0x08 // Display off
-#define LCD_LINE1                0x80 // Linea 1 posicion 1
-#define LCD_LINE2                0xC0 // Linea 2 posicion 1
+#define LCD_LINE1                0x80 // Line 1 position 1
+#define LCD_LINE2                0xC0 // Line 2 position 1
 #define LCD_CURSOR_ON            0x0E // Cursor on
 #define LCD_CURSOR_OFF           0x0C // Cursor off
 #define LCD_BLINK_ON             0x0F // Cursor blink
-#define LCD_CURSOR_DER           0x14 // Mover cursor derecha
-#define LCD_CURSOR_IZQ           0x10 // Mover cursor izquierda
-#define LCD_DISPLAY__DER         0x1C // Scroll display derecha
-#define LCD_DISPLAY__IZQ         0x18 // Scroll display izquierda
+#define LCD_CURSOR_DER           0x14 // Move cursor right
+#define LCD_CURSOR_IZQ           0x10 // Mover cursor link
+#define LCD_DISPLAY__DER         0x1C // Scroll display right
+#define LCD_DISPLAY__IZQ         0x18 // Scroll display link
 #define LCD_CHARMODE             0x01
 #define LCD_COMMANDMODE          0x00
 
