@@ -28,27 +28,27 @@ def client(dev_set):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
         # Connect the socket to the port where the server is listening
-        print >>sys.stderr, 'connecting to %s' % server_address
+        sys.stderr.write ('connecting to %s' % server_address)
         try:
             sock.connect(server_address)
-        except sock.error:
-            print >>sys.stderr
+        except socket.error:
             sys.exit(1)
 
         try:
             # Send data
-            print >>sys.stderr, 'Sending "%s"' % dev_set
-            sock.sendall(dev_set)
+            sys.stderr.write ('Sending "%s"' % dev_set)
+            sock.sendall(dev_set.encode("utf-8"))
 
             amount_received = 0
-            amount_expected = len(dev_set)
+            amount_expected = len(dev_set.encode("utf-8"))
 
             while amount_received < amount_expected:
                 data = sock.recv(16)
                 amount_received += len(data)
-                print >>sys.stderr, 'Received "%s" successfully' % data
+                sys.stderr.write ('Received "%s" successfully' % data)
+                time.sleep(1)
         finally:
-            print >>sys.stderr, 'Closing socket. Bye bye!'
+            sys.stderr.write ('Closing socket. Bye bye!')
             sock.close()
 
 
@@ -70,19 +70,16 @@ def mainloop(host, batch_number):
 
     logger.debug("main loop")
     logger.debug(host)
-
+    newcontroller = TermoComm()
     soc = False
     while soc is False:
         try:
             logger.debug("trying to connect")
-
-            newcontroller = TermoComm()
             soc = newcontroller.NewConn(host,logger)
-            logger.debug("new db")
-            logger.debug("soc: "+ str(soc))
-
         except:
             logger.debug("ERROR: error en la clase TermoComm")
+            continue
+        logger.debug("soc: %s", str(soc))
 
     ret = False
     while ret is False:
@@ -99,13 +96,16 @@ def mainloop(host, batch_number):
         try:
             sqlquery = TermoSql()
             dbconn = sqlquery.NewDB(logger)
-            logger.debug("Connected to the DB: " + str(dbconn))
+            logger.debug("Connected to the DB: %s", str(dbconn))
             batch_id = sqlquery.Getbidfrombnumber(dbconn, batch_number)
             if batch_id is None:
-                logger.debug("Impossible to find a batch_id for the batch number " + str(batch_number))
+                logger.debug("Impossible to find a batch_id for the batch number %s",
+                             str(batch_number))
                 sys.exit(1)
             else:
-                logger.debug("Starting to log data for the batch number #"+str(batch_number)+" (id"+str(batch_id)+")")
+                msg = ("Starting to log data for the batch number #" +
+                      str(batch_number) + " (id" + str(batch_id) + ")" )
+                logger.debug(msg)
         except:
             logger.debug("ERROR: Not possible to connect to the DB.")
 
@@ -134,7 +134,7 @@ def mainloop(host, batch_number):
         data = False
         try:
             data = newcontroller.GetLog(soc)
-            logger.debug("Retrieved data: " + data)
+            logger.debug("Retrieved data: %s", str(data))
         except:
             logger.debug("ERROR: Connection error. Not possible to retrive data.")
 
@@ -143,7 +143,6 @@ def mainloop(host, batch_number):
                 sqlquery.SaveData(dbconn, data, batch_id)
         except:
             logger.debug("ERROR: Not possible to save data in the DB. Retrying in 10 seconds.")
-        time.sleep (10)
 
         # Check for client connection to set the device.
         readable, writable, errored = select.select(read_list, [], read_list, 10)
@@ -162,12 +161,13 @@ def mainloop(host, batch_number):
                         s.send(settemp)
                         kill_server(dbconn, soc, sock)
 
+                    settemp = str(settemp)
                     ret = newcontroller.SetDev(soc, settemp)
                     if ret:
                         logger.debug ("New configuration sent.")
                     else:
                         logger.debug ("Error sending configuration.")
-                    s.send(settemp)
+                    s.send(settemp.encode("utf-8"))
                     settemp = None
                 else:
                     s.close()
@@ -267,7 +267,7 @@ def main(argv, server):
             print ("ERROR: Arguments needed to set the device.")
             print("If you think this is an error, look for a running process, socket file or pid file")
             sys.exit(1)
-        client (dev_set)
+        client(dev_set)
         sys.exit(0)
 
     if host is False:
@@ -359,9 +359,13 @@ if __name__ == "__main__":
     else:
         server = True #No exist and becomes a server
 
+        formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
+                                  datefmt='%Y-%m-%d %H:%M:%S')
+
         logger.setLevel(logging.DEBUG)
         logger.propagate = False
         fh = logging.FileHandler("/tmp/test.log", "w")
+        fh.setFormatter(formatter)
         fh.setLevel(logging.DEBUG)
         logger.addHandler(fh)
         keep_fds = [fh.stream.fileno()]
