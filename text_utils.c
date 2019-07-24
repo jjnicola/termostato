@@ -17,6 +17,14 @@
  */
 void val2temp(int read_value, char *temp_msg)
 {   
+    if (read_value == 0)
+    {
+        temp_msg[0] = '0';
+        temp_msg[1] = '0';
+        temp_msg[2] = '.';
+        temp_msg[3] = '0';
+        temp_msg[4] = 'C';
+    }
     temp_msg[0] = read_value/100 + 48;
     temp_msg[1] = (read_value % 100 ) / 10 + 48;
     temp_msg[2] = '.';

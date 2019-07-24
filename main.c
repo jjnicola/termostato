@@ -164,7 +164,12 @@ int main (int argc, char** argv)
               log_data[5] = 48 + RC5;
               comm_send_log (log_data);
             }
-          
+          if (selcmd == GTS)
+            {
+              val2temp (custom_temp, log_data);
+              log_data[5] = 48 + style_set;
+              comm_send_log (log_data);
+            }
         }
       /* Compare temperatures and set the fridge on or off.
        * It takes in count the hysteresis to avoid start and stop

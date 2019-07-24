@@ -12,12 +12,18 @@
 
 #include <xc.h>// </editor-fold>
 // include processor files - each processor file is guarded.  
-int cmdnum = 4;
+int cmdnum = 5;
 
 enum cmds {
-    TMP = 0, STY, RST, GTL
+    TMP = 0, STY, RST, GTL, GTS
 };
-char cmd[4][4] = {"TMP\0", "STY\0", "RST\0", "GTL\0"};
+char cmd[5][4] = {
+    "TMP\0",
+    "STY\0",
+    "RST\0",
+    "GTL\0",
+    "GTS\0"
+};
 
 void val2temp(int, char *);
 int cmd2int(char *);
