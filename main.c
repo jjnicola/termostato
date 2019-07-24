@@ -35,22 +35,26 @@ int MAX, MIN;
 int style_set;
 int custom_temp;
 int hyst = 2; //Hysteresis
-bit new_cmd = 0;
-unsigned char buffercmd[8] = "CMD:VAL\0";
-unsigned char cmdcount = 0;
+__bit new_cmd = 0;
+char buffercmd[8] = "CMD:VAL\0";
+char cmdcount = 0;
 
-void interrupt ISR()
+void __interrupt () ISR(void)
 {
   /* Debounce done by hardware*/
-  if (INTF == 1)
+  if (INTF == ON)
     {
-      if (style_set < 6)
-        style_set++;
-      else
-        style_set = 0;
-      INTF = 0;
+      delay_ms (100);
+      if (RB0 == 1)
+      {
+        if (style_set < 6)
+            style_set++;
+        else
+            style_set = 0;
+      }
+      INTF = OFF;
     }
-  if (RCIF == 1 )
+  if (RCIF == ON)
     {
       char a;
       a = getch();
@@ -100,7 +104,7 @@ int main (int argc, char** argv)
   PEIE = ON;     // Enabel perisferic interruption.
   INTF = OFF;    //Clean interruption flag for RB0.
   INTE = ON;     // Enable interruption for RB0.
-  INTEDG = OFF;  //Set ascendent edge interruption on rb0.
+  INTEDG = ON;  //Set ascendent edge interruption on rb0.
   GIE = ON;      //Enable global interruption.
 
   /* Begin infinite loop. */

@@ -32,9 +32,9 @@
 
 
 void init_comms(void);
-void putch(unsigned char);
-unsigned char getch(void);
-unsigned char getche(void);
+void putch(char);
+char getch(void);
+char getche(void);
 void comm_send_log (char *);
 
 #endif

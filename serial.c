@@ -31,7 +31,7 @@ void init_comms(void)
         
 }
 
-void putch(unsigned char byte)
+void putch(char byte)
 {
         /* output one byte */
         while(!TRMT)    /* set whilst TX in progress */
@@ -39,8 +39,7 @@ void putch(unsigned char byte)
         TXREG = byte;
 }
 
-unsigned char
-getch() {
+char getch() {
         /* retrieve one byte */
         while(!RCIF)    /* set when register is not empty */
                continue;
